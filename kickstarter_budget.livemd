@@ -1,0 +1,230 @@
+<!-- livebook:{"persist_outputs":true} -->
+
+# Kickstarter budget
+
+```elixir
+Mix.install(
+  [
+    {:ex_money, "~> 5.12"},
+    {:decimal, "~> 2.0"},
+    {:kino, "~> 0.8.0"},
+    {:date_time_parser, "~> 1.1.2"},
+    {:number, "~> 1.0.3"}
+  ],
+  config: [
+    ex_money: [open_exchange_rates_app_id: {:system, "OPEN_EXCHANGE_RATES_APP_ID"}]
+  ]
+)
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+:ok
+```
+
+## Introduction
+
+I back projects that I like on [Kickstarter](https://www.kickstarter.com/) without considering, even though I don't have enough money. Unfortunately Kickstarter does not have a feature that allows backers to manage their own budgets, so I always have to calculate amounts like how much my total pledges are. Therefore, I thought it would be useful to have an easy way to calculate those. This notebook is it.
+
+Actually I would like to implement this so that the content of the active pledges are automatically fetched, but I couldn't think of a good way to do it, so I have taken the tedious method of manually copying and pasting.
+
+## Modules
+
+```elixir
+defmodule Pledge do
+  def to_active_pledges(backings, charge_currency, ftf) do
+    backings
+    |> trim()
+    |> split_by_pledge()
+    |> Enum.map(&(format(&1) |> put_charge(charge_currency, ftf)))
+    |> Enum.sort_by(& &1.deadline, Date)
+  end
+
+  defp trim(content) do
+    String.replace(content, ~r/[\s\S]*Deadline ?Messages\n|\nSuccessful pledges[\s\S]*/, "")
+  end
+
+  defp split_by_pledge(activity_pledges_content) do
+    String.split(activity_pledges_content, "Photo-thumb\t", trim: true)
+  end
+
+  defp format(activity_pledge_content) do
+    [project_and_pledged, _estimated_delivery, deadline] =
+      activity_pledge_content
+      |> String.replace(~r/.*add-ons?\n|\.00.*/, "")
+      |> String.replace(~r/.*messages?\n.*/, &String.slice(&1, 0..10))
+      |> String.split("\n", trim: true)
+
+    [project, pledged] =
+      String.split(project_and_pledged, ~r/(AU\$|CA\$|HK\$|S\$|\$|€|£).*/,
+        trim: true,
+        include_captures: true
+      )
+
+    %{
+      project: project,
+      pledged: pledged,
+      deadline: DateTimeParser.parse!(deadline)
+    }
+  end
+
+  defp put_charge(active_pledge = %{pledged: pledged}, charge_currency, ftf) do
+    amount = pledged |> String.replace(~r/\D/, "") |> Decimal.new()
+    currency = pledged |> String.replace(~r/[ \d].*/, "") |> to_iso4217_currency_code()
+    Map.put(active_pledge, :charge, exchange(amount, currency, charge_currency, ftf))
+  end
+
+  defp to_iso4217_currency_code(pledged_currency) when pledged_currency == "AU$", do: :AUD
+  defp to_iso4217_currency_code(pledged_currency) when pledged_currency == "CA$", do: :CAD
+  defp to_iso4217_currency_code(pledged_currency) when pledged_currency == "HK$", do: :HKD
+  defp to_iso4217_currency_code(pledged_currency) when pledged_currency == "S$", do: :SGD
+  defp to_iso4217_currency_code(pledged_currency) when pledged_currency == "$", do: :USD
+  defp to_iso4217_currency_code(pledged_currency) when pledged_currency == "€", do: :EUR
+  defp to_iso4217_currency_code(pledged_currency) when pledged_currency == "£", do: :GBP
+
+  defp exchange(amount, from_currency, to_currency, _ftf) when from_currency == to_currency do
+    amount
+  end
+
+  defp exchange(amount, from_currency, to_currency, ftf) do
+    Money.new(from_currency, amount)
+    |> Money.to_currency!(to_currency)
+    |> Money.mult!(1 + ftf / 100)
+    |> Money.to_decimal()
+    |> Decimal.round(0)
+  end
+
+  def group_by_deadline_month(active_pledges) do
+    Enum.group_by(active_pledges, &Calendar.strftime(&1.deadline, "%Y-%m"))
+  end
+
+  def total_charge(active_pledges) do
+    active_pledges
+    |> Enum.reduce(Decimal.new(0), &Decimal.add(&2, &1.charge))
+    |> Number.Delimit.number_to_delimited(precision: 0)
+  end
+end
+
+defmodule Currency do
+  def currencies() do
+    Enum.map(Money.known_current_currencies(), fn currency -> {currency, to_string(currency)} end)
+  end
+end
+```
+
+<!-- livebook:{"output":true} -->
+
+```
+{:module, Currency, <<70, 79, 82, 49, 0, 0, 7, ...>>, {:currencies, 0}}
+```
+
+## Inputs
+
+```elixir
+charge_currency =
+  Kino.Input.select("Select your currency", Currency.currencies(),
+    default: System.get_env("DEFAULT_CURRENCY_CODE", "USD") |> String.to_atom()
+  )
+  |> Kino.render()
+
+ftf =
+  Kino.Input.number("Input foreign transaction fee [%]",
+    default: System.get_env("DEFAULT_FOREIGN_TRANSACTION_FEE", "3") |> String.to_integer()
+  )
+  |> Kino.render()
+
+backings =
+  Kino.Input.textarea("Paste the content of https://www.kickstarter.com/profile/backings")
+  |> Kino.render()
+
+Kino.nothing()
+```
+
+## Simulation
+
+Just evaluate after completing the inputs. You can see active pledges and total charges by deadline month.
+
+```elixir
+backings
+|> Kino.Input.read()
+|> Pledge.to_active_pledges(Kino.Input.read(charge_currency), Kino.Input.read(ftf))
+|> Pledge.group_by_deadline_month()
+|> Enum.map(fn {month, pledges} ->
+  frame = Kino.Frame.new()
+  Kino.Frame.append(frame, Kino.Markdown.new("**Total: `#{Pledge.total_charge(pledges)}`**"))
+  Kino.Frame.append(frame, Kino.DataTable.new(pledges))
+  {month, frame}
+end)
+|> Kino.Layout.tabs()
+```
+
+<!-- livebook:{"branch_parent_index":2} -->
+
+## Revision
+
+You can check how much the total charge will be if you cancel some pledges.
+
+```elixir
+month_select_frame = Kino.Frame.new() |> Kino.render()
+total_charge_frame = Kino.Frame.new() |> Kino.render()
+pledge_form_frame = Kino.Frame.new() |> Kino.render()
+Kino.nothing()
+```
+
+```elixir
+active_pledges =
+  backings
+  |> Kino.Input.read()
+  |> Pledge.to_active_pledges(Kino.Input.read(charge_currency), Kino.Input.read(ftf))
+  |> Pledge.group_by_deadline_month()
+
+this_month = Date.utc_today() |> Calendar.strftime("%Y-%m") |> String.to_atom()
+
+month_select =
+  Kino.Input.select(
+    "Deadline month",
+    Enum.map(active_pledges, fn {month, _} -> {String.to_atom(month), month} end),
+    default: this_month
+  )
+
+Kino.Frame.render(month_select_frame, month_select)
+
+pledge_forms =
+  Enum.map(active_pledges, fn {month, pledges} ->
+    form =
+      pledges
+      |> Enum.map(fn %{charge: charge, deadline: deadline, project: project} ->
+        checkbox =
+          Kino.Input.checkbox(
+            "#{charge} #{Kino.Input.read(charge_currency)} on #{deadline.day}, #{project}",
+            default: true
+          )
+
+        {String.to_atom("#{charge}"), checkbox}
+      end)
+      |> Kino.Control.form(report_changes: true)
+
+    {String.to_atom(month), form}
+  end)
+
+Kino.Frame.render(pledge_form_frame, pledge_forms[this_month])
+
+for event <- Kino.Control.stream([month_select | Keyword.values(pledge_forms)]) do
+  case event do
+    %{data: charges} ->
+      total_charge =
+        charges
+        |> Enum.reduce(0, fn
+          {charge, true}, acc -> acc + String.to_integer("#{charge}")
+          _, acc -> acc
+        end)
+        |> Number.Delimit.number_to_delimited(precision: 0)
+
+      Kino.Frame.render(total_charge_frame, Kino.Markdown.new("**Total: `#{total_charge}`**"))
+
+    %{value: month} ->
+      Kino.Frame.render(pledge_form_frame, pledge_forms[month])
+  end
+end
+```
