@@ -179,13 +179,13 @@ active_pledges =
   |> Pledge.to_active_pledges(Kino.Input.read(charge_currency), Kino.Input.read(ftf))
   |> Pledge.group_by_deadline_month()
 
-this_month = Date.utc_today() |> Calendar.strftime("%Y-%m") |> String.to_atom()
+closest_deadline_month = active_pledges |> Map.keys() |> Enum.min() |> String.to_atom()
 
 month_select =
   Kino.Input.select(
     "Deadline month",
     Enum.map(active_pledges, fn {month, _} -> {String.to_atom(month), month} end),
-    default: this_month
+    default: closest_deadline_month
   )
 
 Kino.Frame.render(month_select_frame, month_select)
@@ -208,7 +208,7 @@ pledge_forms =
     {String.to_atom(month), form}
   end)
 
-Kino.Frame.render(pledge_form_frame, pledge_forms[this_month])
+Kino.Frame.render(pledge_form_frame, pledge_forms[closest_deadline_month])
 
 for event <- Kino.Control.stream([month_select | Keyword.values(pledge_forms)]) do
   case event do
