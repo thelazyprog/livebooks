@@ -1,0 +1,91 @@
+# Chapter 2
+
+## Exercise: PatternMatching-1
+
+```elixir
+ExUnit.start(auto_run: false)
+
+defmodule PatternMatching1Test do
+  use ExUnit.Case
+
+  test "will match" do
+    a = [1, 2, 3]
+    a = 4
+    4 = a
+    a = [[1, 2, 3]]
+    [a] = [[1, 2, 3]]
+  end
+
+  test "will not match" do
+    assert_raise(MatchError, fn -> [a, b] = [1, 2, 3] end)
+    assert_raise(MatchError, fn -> [[a]] = [[1, 2, 3]] end)
+  end
+end
+
+ExUnit.run()
+```
+
+## Exercise: PatternMatching-2
+
+```elixir
+ExUnit.start(auto_run: false)
+
+defmodule PatternMatching2Test do
+  use ExUnit.Case
+
+  test "will match" do
+    [a, b, a] = [1, 2, 1]
+  end
+
+  test "will not match" do
+    assert_raise(MatchError, fn -> [a, b, a] = [1, 2, 3] end)
+    assert_raise(MatchError, fn -> [a, b, a] = [1, 1, 2] end)
+  end
+end
+
+ExUnit.run()
+```
+
+## Exercise: PatternMatching-3
+
+```elixir
+ExUnit.start(auto_run: false)
+
+defmodule PatternMatching3Test do
+  use ExUnit.Case
+
+  setup do
+    {:ok, a: 2}
+  end
+
+  describe "will match" do
+    test "a = 1", %{a: a} do
+      a = 1
+    end
+
+    test "^a = 2", %{a: a} do
+      ^a = 2
+    end
+  end
+
+  describe "will not match" do
+    test "[a, b, a] = [1, 2, 3]", %{a: a} do
+      assert_raise(MatchError, fn -> [a, b, a] = [1, 2, 3] end)
+    end
+
+    test "[a, b, a] = [1, 1, 2]", %{a: a} do
+      assert_raise(MatchError, fn -> [a, b, a] = [1, 1, 2] end)
+    end
+
+    test "^a = 1", %{a: a} do
+      assert_raise(MatchError, fn -> ^a = 1 end)
+    end
+
+    test "^a = 2 - a", %{a: a} do
+      assert_raise(MatchError, fn -> ^a = 2 - a end)
+    end
+  end
+end
+
+ExUnit.run()
+```
