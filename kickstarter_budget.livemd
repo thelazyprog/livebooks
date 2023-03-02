@@ -37,21 +37,21 @@ defmodule Pledge do
     backings
     |> trim()
     |> split_by_pledge()
-    |> Enum.map(&(format(&1) |> put_charge(charge_currency, ftf)))
-    |> Enum.sort_by(& &1.deadline, Date)
+    |> Enum.map(&(&1 |> parse() |> put_charge(charge_currency, ftf)))
+    |> sort_by_deadline()
   end
 
-  defp trim(content) do
-    String.replace(content, ~r/[\s\S]*Deadline ?Messages\n|\nSuccessful pledges[\s\S]*/, "")
+  defp trim(backings) do
+    String.replace(backings, ~r/[\s\S]*Deadline ?Messages\n|\nSuccessful pledges[\s\S]*/, "")
   end
 
   defp split_by_pledge(activity_pledges_content) do
     String.split(activity_pledges_content, "Photo-thumb\t", trim: true)
   end
 
-  defp format(activity_pledge_content) do
+  defp parse(text_of_activity_pledge) do
     [project_and_pledged, _estimated_delivery, deadline] =
-      activity_pledge_content
+      text_of_activity_pledge
       |> String.replace(~r/.*add-ons?\n|\.00.*/, "")
       |> String.replace(~r/.*messages?\n.*/, &String.slice(&1, 0..10))
       |> String.split("\n", trim: true)
@@ -75,13 +75,13 @@ defmodule Pledge do
     Map.put(active_pledge, :charge, exchange(amount, currency, charge_currency, ftf))
   end
 
-  defp to_iso4217_currency_code(pledged_currency) when pledged_currency == "AU$", do: :AUD
-  defp to_iso4217_currency_code(pledged_currency) when pledged_currency == "CA$", do: :CAD
-  defp to_iso4217_currency_code(pledged_currency) when pledged_currency == "HK$", do: :HKD
-  defp to_iso4217_currency_code(pledged_currency) when pledged_currency == "S$", do: :SGD
-  defp to_iso4217_currency_code(pledged_currency) when pledged_currency == "$", do: :USD
-  defp to_iso4217_currency_code(pledged_currency) when pledged_currency == "€", do: :EUR
-  defp to_iso4217_currency_code(pledged_currency) when pledged_currency == "£", do: :GBP
+  defp to_iso4217_currency_code("AU$"), do: :AUD
+  defp to_iso4217_currency_code("CA$"), do: :CAD
+  defp to_iso4217_currency_code("HK$"), do: :HKD
+  defp to_iso4217_currency_code("S$"), do: :SGD
+  defp to_iso4217_currency_code("$"), do: :USD
+  defp to_iso4217_currency_code("€"), do: :EUR
+  defp to_iso4217_currency_code("£"), do: :GBP
 
   defp exchange(amount, from_currency, to_currency, _ftf) when from_currency == to_currency do
     amount
@@ -93,6 +93,10 @@ defmodule Pledge do
     |> Money.mult!(1 + ftf / 100)
     |> Money.to_decimal()
     |> Decimal.round(0)
+  end
+
+  defp sort_by_deadline(active_pledges) do
+    Enum.sort_by(active_pledges, & &1.deadline, Date)
   end
 
   def group_by_deadline_month(active_pledges) do
