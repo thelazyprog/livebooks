@@ -1,0 +1,69 @@
+# Chapter 5
+
+## Exercise: Functions-1
+
+```elixir
+list_concat = fn [a, b], [c, d] -> [a, b, c, d] end
+[:a, :b, :c, :d] = list_concat.([:a, :b], [:c, :d])
+
+sum = fn a, b, c -> a + b + c end
+6 = sum.(1, 2, 3)
+
+pair_tuple_to_list = fn {a, b} -> [a, b] end
+[1234, 5678] = pair_tuple_to_list.({1234, 5678})
+```
+
+## Exercise: Functions-2
+
+```elixir
+fizzword = fn
+  0, 0, _ -> "FizzBuzz"
+  0, _, _ -> "Fizz"
+  _, 0, _ -> "Buzz"
+  _, _, n -> n
+end
+
+"FizzBuzz" = fizzword.(0, 0, 1)
+"Fizz" = fizzword.(0, 1, 0)
+"Buzz" = fizzword.(1, 0, 0)
+0 = fizzword.(1, 1, 0)
+```
+
+## Exercise: Functions-3
+
+```elixir
+fizzbuzz = fn n -> fizzword.(rem(n, 3), rem(n, 5), n) end
+
+"Buzz, 11, Fizz, 13, 14, FizzBuzz, 16" = Enum.map_join(10..16, ", ", fizzbuzz)
+```
+
+## Exercise: Functions-4
+
+```elixir
+prefix = fn prefix -> fn str -> "#{prefix} #{str}" end end
+
+mrs = prefix.("Mrs")
+"Mrs Smith" = mrs.("Smith")
+"Elixir Rocks" = prefix.("Elixir").("Rocks")
+```
+
+```elixir
+defmodule Greeter do
+  def for(name, greeting) do
+    fn
+      ^name -> "#{greeting} #{name}"
+      _ -> "I don't know you"
+    end
+  end
+end
+
+mr_valim = Greeter.for("Jose", "Oi!")
+mr_valim.("Jos")
+```
+
+## Exercise: Functions-5
+
+```elixir
+Enum.map([1, 2, 3, 4], &(&1 + 2))
+Enum.each([1, 2, 3, 4], &IO.inspect/1)
+```
