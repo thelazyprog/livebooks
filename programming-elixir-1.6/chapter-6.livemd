@@ -1,0 +1,80 @@
+# Chapter 6
+
+```elixir
+Mix.install([
+  {:json, "~> 1.4"}
+])
+```
+
+## Exercise: ModulesAndFunctions-1 & 3
+
+```elixir
+defmodule Times do
+  def double(n), do: n * 2
+  def triple(n), do: n * 3
+  def quadruple(n), do: n * 4
+end
+```
+
+## Exercise: ModulesAndFunctions-4
+
+```elixir
+defmodule Sum do
+  def from_1_to(1), do: 1
+  def from_1_to(n) when is_integer(n) and n > 1, do: n + from_1_to(n - 1)
+end
+
+5050 = Sum.from_1_to(100)
+```
+
+## Exercise: ModulesAndFunctions-5
+
+```elixir
+defmodule Math do
+  def gcd(x, 0) when is_integer(x) and x >= 0, do: x
+  def gcd(x, y) when is_integer(x) and x >= 0 and is_integer(y) and y >= 0, do: gcd(y, rem(x, y))
+end
+
+6 = Math.gcd(54, 24)
+```
+
+## Exercise: ModulesAndFunctions-6
+
+```elixir
+defmodule Chop do
+  def guess(actual, range = low..high) do
+    guess = div(low + high, 2)
+    IO.puts("Is it #{guess}")
+    guess(actual, range, guess)
+  end
+
+  defp guess(actual, low.._, guess) when guess > actual, do: guess(actual, low..(guess - 1))
+  defp guess(actual, _..high, guess) when guess < actual, do: guess(actual, (guess + 1)..high)
+  defp guess(_, _, guess), do: guess
+end
+
+Chop.guess(273, 1..1000)
+```
+
+## Exercise: ModulesAndFunctions-7
+
+```elixir
+# Convert a float to a string with two decimal digits. (Erlang)
+:io_lib.format("~.2f", [3.1415]) |> IO.puts()
+
+# Get the value of an operating-system environment variable. (Elixir)
+System.get_env("ELIXIR_EDITOR") |> IO.puts()
+
+# Return the extension component of a file name (so return .exs if given "dave/test.exs"). (Elixir)
+Path.extname("dave/test.exs") |> IO.puts()
+
+# Return the process’s current working directory. (Elixir)
+File.cwd!() |> IO.puts()
+
+# Convert a string containing JSON into Elixir data structures.
+JSON.decode!(~s({"key":"this will be a value"})) |> IO.inspect()
+
+# Execute a command in your operating system’s shell.
+System.cmd("say", ["Hello world"])
+:os.cmd('say Hello world')
+```
