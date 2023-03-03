@@ -47,20 +47,6 @@ mrs = prefix.("Mrs")
 "Elixir Rocks" = prefix.("Elixir").("Rocks")
 ```
 
-```elixir
-defmodule Greeter do
-  def for(name, greeting) do
-    fn
-      ^name -> "#{greeting} #{name}"
-      _ -> "I don't know you"
-    end
-  end
-end
-
-mr_valim = Greeter.for("Jose", "Oi!")
-mr_valim.("Jos")
-```
-
 ## Exercise: Functions-5
 
 ```elixir
