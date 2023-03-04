@@ -1,0 +1,26 @@
+# Chapter 7
+
+## Exercise: ListsAndRecursion-1 to 4
+
+```elixir
+defmodule MyList do
+  def mapsum([], _), do: 0
+  def mapsum([head | tail], fun), do: fun.(head) + mapsum(tail, fun)
+
+  def max([head | tail]), do: _max(tail, head)
+  defp _max([], value), do: value
+  defp _max([head | tail], value) when head > value, do: _max(tail, head)
+  defp _max([_ | tail], value), do: _max(tail, value)
+
+  def caesar([], _), do: []
+  def caesar([head | tail], n), do: [?a + rem(head + n - ?a, 26) | caesar(tail, n)]
+
+  def span(from, to) when to > from, do: [from | span(from + 1, to)]
+  def span(to, to), do: [to]
+end
+
+14 = MyList.mapsum([1, 2, 3], &(&1 * &1))
+9 = MyList.max([3, 1, 4, 1, 5, 9, 2])
+'elixir' = MyList.caesar('ryvkve', 13)
+[12, 13, 14, 15, 16] = MyList.span(12, 16)
+```
