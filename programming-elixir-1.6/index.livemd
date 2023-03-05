@@ -8,3 +8,4 @@ Requires Livebook v0.8+.
 * [Chapter 5](chapter-5.livemd)
 * [Chapter 6](chapter-6.livemd)
 * [Chapter 7](chapter-7.livemd)
+* [Chapter 10](chapter-10.livemd)
