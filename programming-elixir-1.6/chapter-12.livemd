@@ -1,0 +1,37 @@
+# Chapter 12
+
+## Exercise: ControlFlow-1
+
+```elixir
+defmodule FizzBuzz do
+  def upto(n) when n > 0, do: 1..n |> Enum.map(&fizzword/1)
+
+  defp fizzword(n) do
+    case {n, rem(n, 3), rem(n, 5)} do
+      {_, 0, 0} -> "FizzBuzz"
+      {_, 0, _} -> "Fizz"
+      {_, _, 0} -> "Buzz"
+      _ -> n
+    end
+  end
+end
+
+FizzBuzz.upto(20)
+```
+
+## Exercise: ControlFlow-2
+
+In general, using separate functions with guard clauses is the best option, but in this case the `case` style is good enough I think. Probably because this is very easy to implement, and it seems to be readable that expressions for the remainder and its conditionals are close. It is easy to remind the order and meaning of the three numbers.
+
+"Don't Control, Guard."
+
+## Exercise: ControlFlow-3
+
+```elixir
+ok! = fn
+  {:ok, data} -> data
+  {_, error} -> raise "Error: #{error}"
+end
+
+ok!.(File.open("somefile"))
+```
