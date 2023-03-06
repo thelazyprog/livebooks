@@ -1,0 +1,120 @@
+# Chapter 11
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.8"}
+])
+```
+
+## Exercise: StringsAndBinaries-1, 2, 4
+
+```elixir
+defmodule CharList do
+  def printable([]), do: true
+  def printable([head | tail]) when head in ?\s..?~, do: printable(tail)
+  def printable(_), do: false
+
+  def anagram?(word1, word2), do: normalize(word1) == normalize(word2)
+  defp normalize(word), do: word |> :string.lowercase() |> :lists.sort() |> :string.trim()
+
+  def calculate(expression) do
+    [term1, operator, term2] = :re.split(expression, ' ')
+    calculate(String.to_integer(term1), String.to_integer(term2), operator)
+  end
+
+  defp calculate(term1, term2, "+"), do: term1 + term2
+  defp calculate(term1, term2, "-"), do: term1 - term2
+  defp calculate(term1, term2, "*"), do: term1 * term2
+  defp calculate(term1, term2, "/"), do: term1 / term2
+end
+
+true = CharList.printable('Hello, world!')
+false = CharList.printable('Hello, world!' ++ [0])
+
+true = CharList.anagram?('New York Times', 'monkeys write')
+false = CharList.anagram?('hello', 'world')
+
+CharList.calculate('123 + 27')
+```
+
+## Exercise: StringsAndBinaries-3
+
+`'cat'` itself is not a codepoint. Therefore, `['cat', 100, 111, 103]`, which is `[[99, 97, 116], 100, 111, 103]`, is not shown as a string.
+
+## Exercise: StringsAndBinaries-5 & 6
+
+```elixir
+defmodule MyString do
+  def center(strings) do
+    width = strings |> Enum.map(&String.length/1) |> Enum.max()
+    strings |> Enum.map(&indent_to_centre(&1, width)) |> Enum.each(&IO.puts/1)
+  end
+
+  defp indent_to_centre(str, width) do
+    intents = div(width - String.length(str), 2)
+    String.duplicate(" ", intents) <> str
+  end
+
+  def capitalize_sentences(str) do
+    str
+    |> String.split(". ")
+    |> Enum.map_join(". ", &String.capitalize/1)
+  end
+end
+
+MyString.center(["cat", "zebra", "elephant"])
+
+"Oh. A dog. Woof. " = MyString.capitalize_sentences("oh. a DOG. woof. ")
+```
+
+## Exercise: StringsAndBinaries-7
+
+```elixir
+defmodule Order do
+  @tax_rates [NC: 0.075, TX: 0.08]
+
+  def calculate(file_path) do
+    file_path
+    |> File.stream!()
+    |> Stream.drop(1)
+    |> Stream.map(&String.trim/1)
+    |> Stream.map(&parse/1)
+    |> sales_tax()
+
+    # Enum version
+    # file_path
+    # |> File.read!()
+    # |> String.split("\n", trim: true)
+    # |> Enum.drop(1)
+    # |> Enum.map(&parse/1)
+    # |> sales_tax()
+  end
+
+  defp parse(row) do
+    [id, ship_to, net_amount] = String.split(row, ",")
+
+    [
+      id: String.to_integer(id),
+      ship_to: ship_to |> String.trim_leading(":") |> String.to_atom(),
+      net_amount: String.to_float(net_amount)
+    ]
+  end
+
+  def sales_tax(orders, tax_rates \\ @tax_rates) do
+    for order <- orders do
+      tax_rate = Keyword.get(tax_rates, order[:ship_to], 0)
+      total_amount = order[:net_amount] * (1 + tax_rate)
+      order ++ [total_amount: total_amount]
+    end
+  end
+end
+```
+
+```elixir
+file_input = Kino.Input.file("Sales information")
+```
+
+```elixir
+value = Kino.Input.read(file_input)
+Order.calculate(value.path)
+```
