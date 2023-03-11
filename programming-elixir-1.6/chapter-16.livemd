@@ -1,0 +1,117 @@
+# Chapter 16
+
+## Exercise: Nodes-2
+
+Receiving a tick message causes the timeout to start over.
+
+## Exercise: Nodes-3
+
+```elixir
+defmodule Ticker do
+  @interval 2000
+  @name :ticker
+
+  def start do
+    pid = spawn(__MODULE__, :generator, [[], 0])
+    :global.register_name(@name, pid)
+  end
+
+  def register(client_pid) do
+    send(:global.whereis_name(@name), {:register, client_pid})
+  end
+
+  def generator(clients, next) do
+    receive do
+      {:register, pid} ->
+        IO.puts("registering #{inspect(pid)}")
+        generator(clients ++ [pid], next)
+    after
+      @interval ->
+        IO.puts("tick")
+
+        if client = Enum.at(clients, next) do
+          send(client, {:tick, next})
+        end
+
+        if length(clients) > next + 1 do
+          generator(clients, next + 1)
+        else
+          generator(clients, 0)
+        end
+    end
+  end
+end
+
+defmodule Client do
+  def start do
+    pid = spawn(__MODULE__, :receiver, [])
+    Ticker.register(pid)
+  end
+
+  def receiver do
+    receive do
+      {:tick, number} ->
+        IO.puts("tock in client ##{number}")
+        receiver()
+    end
+  end
+end
+```
+
+## Exercise: Nodes-4
+
+```elixir
+defmodule RingTicker do
+  @name :ticker
+
+  def start do
+    pid = spawn(__MODULE__, :generator, [[]])
+    :global.register_name(@name, pid)
+  end
+
+  def register(client_pid) do
+    send(:global.whereis_name(@name), {:register, client_pid})
+  end
+
+  def generator(clients) do
+    receive do
+      {:register, pid} ->
+        IO.puts("registering #{inspect(pid)}")
+
+        if clients == [] do
+          send(pid, {:tick})
+        else
+          send(pid, {:update, List.first(clients)})
+          send(List.last(clients), {:update, pid})
+        end
+
+        generator(clients ++ [pid])
+    end
+  end
+end
+
+defmodule RingClient do
+  @interval 2000
+
+  def start do
+    pid = spawn(__MODULE__, :receiver, [:infinity])
+    RingTicker.register(pid)
+  end
+
+  def receiver(timeout, next \\ self()) do
+    receive do
+      {:tick} ->
+        IO.puts("tock in client")
+        receiver(@interval, next)
+
+      {:update, pid} ->
+        receiver(timeout, pid)
+    after
+      timeout ->
+        IO.puts("tick")
+        send(next, {:tick})
+        receiver(:infinity, next)
+    end
+  end
+end
+```
