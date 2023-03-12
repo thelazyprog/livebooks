@@ -1,0 +1,72 @@
+# Chapter 17
+
+## Exercise: OTP-Servers-1, 2, 4, 5
+
+```elixir
+defmodule Stack.Server do
+  use GenServer
+
+  def start_link(stack) do
+    GenServer.start_link(__MODULE__, stack, name: __MODULE__)
+  end
+
+  def pop do
+    GenServer.call(__MODULE__, :pop)
+  end
+
+  def push(value) do
+    GenServer.cast(__MODULE__, {:push, value})
+  end
+
+  def init(initial_stack) do
+    {:ok, initial_stack}
+  end
+
+  def handle_call(:pop, _from, [head | tail]) do
+    {:reply, head, tail}
+  end
+
+  def handle_cast({:push, value}, _state) when is_integer(value) and value < 10 do
+    System.halt(1)
+  end
+
+  def handle_cast({:push, value}, current_stack) do
+    {:noreply, [value | current_stack]}
+  end
+
+  def terminate(reason, state) do
+    IO.puts("""
+    Stack server terminated.
+      reason: #{inspect(reason)}
+      state: #{inspect(state)}
+    """)
+  end
+end
+
+{:ok, pid} = GenServer.start_link(Stack.Server, [5, "cat", 9])
+5 = GenServer.call(pid, :pop)
+"cat" = GenServer.call(pid, :pop)
+9 = GenServer.call(pid, :pop)
+GenServer.cast(pid, {:push, :hello})
+GenServer.cast(pid, {:push, "world"})
+"world" = GenServer.call(pid, :pop)
+:hello = GenServer.call(pid, :pop)
+GenServer.stop(pid)
+```
+
+## Exercise: OTP-Servers-3
+
+```elixir
+{:ok, pid} = GenServer.start_link(Stack.Server, ["hello", 42, :world], name: :stack)
+"hello" = GenServer.call(:stack, :pop)
+GenServer.stop(:stack)
+```
+
+<!-- livebook:{"branch_parent_index":0} -->
+
+## Exercise: OTP-Servers-5
+
+```elixir
+Stack.Server.start_link([])
+Stack.Server.pop()
+```

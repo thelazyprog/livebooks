@@ -13,3 +13,4 @@ Requires Livebook v0.8+.
 * [Chapter 12](chapter-12.livemd)
 * [Chapter 15](chapter-15.livemd)
 * [Chapter 16](chapter-16.livemd)
+* [Chapter 17](chapter-17.livemd)
