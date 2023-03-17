@@ -1,0 +1,87 @@
+# Chapter 24
+
+## Exercise: Protocols-1
+
+```elixir
+defprotocol Caesar do
+  def encrypt(string, shift)
+  def rot13(string)
+end
+
+defimpl Caesar, for: List do
+  def encrypt(string, shift), do: Enum.map(string, &(?a + rem(&1 + shift - ?a, 26)))
+  def rot13(string), do: encrypt(string, 13)
+end
+
+defimpl Caesar, for: BitString do
+  def encrypt(string, shift), do: string |> to_charlist() |> Caesar.encrypt(shift) |> to_string()
+  def rot13(string), do: encrypt(string, 13)
+end
+
+'elixir' = Caesar.encrypt('ryvkve', 13)
+'elixir' = Caesar.rot13('ryvkve')
+"elixir" = Caesar.encrypt("ryvkve", 13)
+"elixir" = Caesar.rot13("ryvkve")
+```
+
+## Exercise: Protocols-2
+
+```elixir
+
+```
+
+## Exercise: Protocols-3
+
+```elixir
+defmodule MyEnum do
+  def each(enumerable, fun) do
+    Enum.reduce(enumerable, :ok, fn elem, _acc -> fun.(elem) end)
+  end
+
+  def filter(enumerable, fun) do
+    Enum.reduce(enumerable, [], fn elem, acc ->
+      if fun.(elem) do
+        acc ++ [elem]
+      else
+        acc
+      end
+    end)
+  end
+
+  def map(enumerable, fun) do
+    Enum.reduce(enumerable, [], fn elem, acc -> acc ++ [fun.(elem)] end)
+  end
+end
+```
+
+```elixir
+ExUnit.start(auto_run: false)
+
+defmodule MyEnumTest do
+  use ExUnit.Case
+  import ExUnit.CaptureIO
+
+  test "each/2 works" do
+    result = capture_io(fn -> MyEnum.each(["some", "example"], fn x -> IO.puts(x) end) end)
+    assert result == "some\nexample\n"
+    assert MyEnum.each([], &IO.puts/1) == :ok
+  end
+
+  test "filter/2 works" do
+    assert Enum.filter([1, 2, 3], fn x -> rem(x, 2) == 0 end) == [2]
+  end
+
+  test "map/2 works" do
+    assert MyEnum.map([1, 2, 3], fn x -> x * 2 end) == [2, 4, 6]
+    assert MyEnum.map([a: 1, b: 2], fn {k, v} -> {k, -v} end) == [a: -1, b: -2]
+  end
+end
+
+ExUnit.run()
+```
+
+## Exercise: Protocols-4
+
+```elixir
+
+```
