@@ -1,0 +1,123 @@
+# Chaper 25
+
+## Exercise: MoreCoolStuff-1
+
+```elixir
+defmodule CsvSigilV1 do
+  @doc """
+  Parses multiple lines of comma-separated data,
+  returning a list where each element is a row of data
+  and each row is a list of values.
+
+  ## Example
+
+      iex> import CsvSigilV1
+      CsvSigilV1
+      iex> ~v\"""
+      ...> 1,2,3
+      ...> cat,dog
+      ...> \"""
+      [["1","2","3"],["cat","dog"]]
+  """
+  def sigil_v(lines, _opts) do
+    lines
+    |> String.trim_trailing()
+    |> String.split("\n")
+    |> Enum.map(&String.split(&1, ","))
+  end
+end
+```
+
+## Exercise: MoreCoolStuff-2
+
+```elixir
+defmodule CsvSigilV2 do
+  @doc """
+  Parses multiple lines of comma-separated data,
+  returning a list where each element is a row of data
+  and each row is a list of values.
+  Numbers are automatically converted to float.
+
+  ## Example
+
+      iex> import CsvSigilV2
+      CsvSigilV2
+      iex> ~v\"""
+      ...> 1,2,3.14
+      ...> cat,dog
+      ...> \"""
+      [[1.0,2.0,3.14],["cat","dog"]]
+  """
+  def sigil_v(lines, _opts) do
+    lines
+    |> String.trim_trailing()
+    |> String.split("\n")
+    |> Enum.map(&String.split(&1, ","))
+    |> Enum.map(&to_float_if_needed/1)
+  end
+
+  defp to_float_if_needed(list) do
+    Enum.map(list, fn str ->
+      case Float.parse(str) do
+        {float, _} -> float
+        :error -> str
+      end
+    end)
+  end
+end
+```
+
+## Exercise: MoreCoolStuff-3
+
+```elixir
+defmodule CsvSigilV3 do
+  @doc """
+  Parses multiple lines of comma-separated data
+  with a list of the column names at the first line,
+  returning the values in each row as a keyword list,
+  using the column names as the keys.
+  Numbers are automatically converted to integer or float.
+
+  ## Example
+
+      iex> import CsvSigilV3
+      CsvSigilV3
+      iex> ~v\"""
+      ...> Item,Qty,Price
+      ...> Teddy bear,4,34.95
+      ...> Milk,1,2.99
+      ...> Battery,6,8.00
+      ...> \"""
+      [
+        [Item: "Teddy bear", Qty: 4, Price: 34.95],
+        [Item: "Milk", Qty: 1, Price: 2.99],
+        [Item: "Battery", Qty: 6, Price: 8.0]
+      ]
+  """
+  def sigil_v(lines, _opts) do
+    [header | rows] =
+      lines
+      |> String.trim_trailing()
+      |> String.split("\n")
+      |> Enum.map(&String.split(&1, ","))
+
+    rows
+    |> Enum.map(&parse_number/1)
+    |> Enum.map(&to_keywordlist(header, &1))
+  end
+
+  defp parse_number(list) do
+    Enum.map(list, fn str ->
+      cond do
+        str =~ ~r{^\d+\.\d+$} -> String.to_float(str)
+        str =~ ~r{^\d+$} -> String.to_integer(str)
+        true -> str
+      end
+    end)
+  end
+
+  defp to_keywordlist(keys, values) do
+    keys |> Enum.map(&String.to_atom/1) |> Enum.zip(values)
+  end
+end
+```
